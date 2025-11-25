@@ -314,3 +314,79 @@ function stackableSuit(suitA, suitB) {
             return ["diamonds","hearts"].includes(suitB);
     }
 }
+
+//Funções de Desenho
+function draw() {
+    if (gameOver) {return;}
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawSnaps();
+    drawMovingCards();
+    requestAnimationFrame(() => {draw()});
+}
+
+function drawSnaps() {
+    cardSnaps.map(s => {
+    ctx.strokeStyle = "black";
+    ctx.beginPath();
+    ctx.roundRect(s.x, s.y, CARD_W, CARD_H, SNAP_RADIUS);
+    ctx.stroke();
+        switch(s.type) {
+            case "mount":
+            case "mainSetClosed":
+            case "mainSetOpened":
+                s.cards.map(c => {
+                    c.drawCard(s.x, s.y);
+                })
+                break;
+            case "tower":
+                s.cards.map((c, i) => {
+                    c.drawCard(s.x, s.y + (i * ROW_GAP));
+                })
+                break;
+        }
+    })
+}
+
+function drawMovingCards() {
+    if (movingCards.length) {
+        movingCards.map(c => c.drawCard(c.movingX, c.movingY, true));
+    }
+}
+
+document.addEventListener("mousedown", e => {
+    if (gameOver) return;
+    const [x, y] = getXY(e);
+    detectClickedCard(x, y);
+
+    movingCards.map(c => {
+        c.mouseX = x - c.snap.x;
+        c.mouseY = y - movingCards[0].movingY;
+    })
+})
+
+function bounceCards() {
+    gameOver = true;
+    movingCards[0];
+    let card = cardSnaps[currentBouncingSnapIndex].cards[currentBouncingCardIndex];
+    card.movingX = card.snap.x;
+    card.movingY = card.snap.y;
+    movingCards.push(card);
+
+}
+document.addEventListener("mouseup", e => {
+    if (gameOver) return;
+    const [x, y] = getXY(e);
+    if (movingCards.length) detectSnappedArea(movingCards[0], x, y);
+    movingCards = [];
+})
+
+document.addEventListener("mousemove", e => {
+    if (gameOver) return;
+    const [x, y] = getXY(e);
+    movingCards.map((c, k) => {
+        c.movingX = x - c.mouseX;
+        c.movingY = y - c.mouseY;
+    })
+})
+start();
+draw();
