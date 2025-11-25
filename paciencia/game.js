@@ -23,7 +23,6 @@ function resizeCanvasToDisplaySize(canvas) {
     return false;
 }
 
-
 window.addEventListener('resize', () => resizeCanvasToDisplaySize(canvas));
 resizeCanvasToDisplaySize(canvas);
 
@@ -89,6 +88,45 @@ class Card {
             ctx.roundRect(x + 5, y + 5, CARD_W - 10, CARD_H - 10, SNAP_RADIUS);
             ctx.fill();
         }
+    }
+    moveSnap(newSnap) {
+        let oldSnap = this.snap;
+        let i = oldSnap.cards.indexOf(this);
+        oldSnap.cards.splice(i, 1);
+        this.snap = newSnap;
+        newSnap.cards.push(this);
+
+        if (oldSnap.type == "tower" && oldSnap.cards.length) {
+            oldSnap.cards[oldSnap.cards.length - 1].flipped = true;
+        }
+        if (newSnap.type == "mainSetClosed") {
+            this.flipped = false;
+        } else {
+            this.flipped = true;
+        }
+    }
+
+    canMoveToSnap(newSnap) {
+        const snapCurrentCard = newSnap.cards[newSnap.cards.length - 1];
+        
+        
+        if (!snapCurrentCard && this.number == "A" && newSnap.type == "mount") {
+            return true;
+        }
+        
+        if (!snapCurrentCard && newSnap.type == "tower") {
+            return true;
+        }
+        
+        if (snapCurrentCard && newSnap.type == "tower" && numbers.indexOf(this.number) == numbers.indexOf(snapCurrentCard.number) -1 && stackableSuit(this.suit, snapCurrentCard.suit)) {
+            return true;
+        }
+        
+        if (snapCurrentCard && numbers.indexOf(this.number) == numbers.indexOf(snapCurrentCard.number) + 1 &&
+        this.suit == snapCurrentCard.suit && newSnap.type == "mount") {
+            return true;
+        }
+        return false;
     }
 }
 
@@ -244,4 +282,35 @@ function start() {
 function checkWin() {
     const foundations = cardSnaps.slice(2, 6);
     return foundations.every(f => f.cards.length === 13);
+}
+
+//Funções de Utilidade
+function mainSetOpened() {
+    return cardSnaps.find(s => s.type == "mainSetOpened");   
+}
+
+function mainSetClosed() {
+    return cardSnaps.find(s => s.type == "mainSetClosed");   
+}
+
+function getXY(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    return [x, y];
+}
+
+function allCards() {
+    return cardSnaps.map(s => s.cards).flat();
+}
+
+function stackableSuit(suitA, suitB) {
+    switch(suitA) {
+        case "diamonds":
+        case "hearts":
+            return ["clubs","spades"].includes(suitB);
+        case "clubs":
+        case "spades":
+            return ["diamonds","hearts"].includes(suitB);
+    }
 }
